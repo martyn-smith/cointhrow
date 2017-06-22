@@ -1,7 +1,6 @@
 """
 a simple half-integer verlet solver for projectiles.  I've used a coin as
 an example.  Includes headwind.
-
 """
 
 import numpy as np
@@ -17,16 +16,6 @@ del_t = 0.001 #reasonable
 hdwind = 1.0 #approx. 20mph in ms^-1
 
 class Coin():
-	m = None #in kgs
-	A = None # in m^2
-	D = None # in m
-	Cd = None
-	gamma = None # =F/m(v), saves space/calculation
-	v_x = V_X0
-	v_y = V_Y0
-	v = np.sqrt((v_x**2) + (v_y**2))
-	x = 0.0
-	y = Y0
 
 	def __init__(self, denomination):
 		#all from royalmint.com
@@ -36,24 +25,32 @@ class Coin():
 			"50p"  : (8.0e-03, 27.3e-03),
 			"pound": (9.5e-03, 22.5e-03)
 		}
-		self.m, self.D = dimensions.get(denomination)
+		self.m, self.D = dimensions.get(denomination) #in kgs and m
 		self.A = pi * (self.D ** 2) / 4.0
 		self.Cd = rho * self.A * C * 0.5
-		self.gamma = self.Cd / self.m
+		self.gamma = self.Cd / self.m # =F/m(v), saves space/calculation
+		self.v_x = V_X0
+		self.v_y = V_Y0
+		self.x = 0.0
+		self.y = Y0
+
+	@property
+	def v(self):
+		return np.sqrt((self.v_x**2) + (self.v_y**2))
+
+	@property
+	def energy(self):
+		return 0.5 * self.m * self.v**2
 
 	def update_v(self, del_t):
 		a_x = - (self.gamma * (self.v * (self.v_x + hdwind)))
 		a_y = -g - (self.gamma * (self.v * self.v_y))
 		self.v_x += (a_x * del_t)
 		self.v_y += (a_y * del_t)
-		self.v = np.sqrt((self.v_x**2) + (self.v_y**2))
 
 	def update_r(self, del_t):
 		self.x += self.v_x * del_t
 		self.y += self.v_y * del_t
-
-	def energy(self):
-		return 0.5 * self.m * self.v**2
 
 coin = Coin("pound")
 print("Time\tV(x) (ms-1)\tDistance (m)\tHeight (m)\tEnergy (J)")
@@ -65,6 +62,7 @@ for t in np.arange(0.001, 1.0, (del_t/2.0)):
 	else:
 		coin.update_r(del_t)
 	ticktock = not ticktock
-	print("{}\t{}\t{}\t{}\t{}".format(t, coin.v_x, coin.x, coin.y, coin.energy()))
+	if (del_t):
+		print("{}\t{}\t{}\t{}\t{}".format(t, coin.v_x, coin.x, coin.y, coin.energy))
 	if (coin.y <= Y_MIN) or (coin.v_x <= 0.0):
 		break
